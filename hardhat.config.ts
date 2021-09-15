@@ -191,122 +191,84 @@ export default <HardhatUserConfig>{
   networks: {
     kovan: networkConfig({
       url: `https://kovan.infura.io/v3/${INFURA_KEY}`,
-      chainId: 42,
-      live: true,
+      chainId: 42 
     }),
     rinkeby: networkConfig({
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
-      chainId: 4,
-      live: true,
+      chainId: 4
     }),
     ropsten: networkConfig({
       url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
-      chainId: 3,
-      live: true,
+      chainId: 3
     }),
     goerli: networkConfig({
       url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
-      chainId: 5,
-      live: true,
+      chainId: 5
     }),
     mainnet: networkConfig({
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
-      chainId: 1,
-      live: true,
+      chainId: 1
     }),
     polygon: networkConfig({
       url: `https://polygon-mainnet.infura.io/v3/${INFURA_KEY}`,
-      chainId: 137,
-      live: true,
+      chainId: 137
     }),
     polygon_mumbai: networkConfig({
       url: `https://polygon-mumbai.infura.io/v3/${INFURA_KEY}`,
-      chainId: 80001,
-      live: true,
+      chainId: 80001
     }),
     xdai: networkConfig({
       url: 'https://rpc.xdaichain.com/',
-      // chainId: ,
-      live: true,
+      // chainId: 
     }),
     rinkebyArbitrum: networkConfig({
       url: 'https://rinkeby.arbitrum.io/rpc',
-      // chainId: ,
-      live: true,
-      companionNetworks: {
-        l1: 'rinkeby',
-      },
+      // chainId: , 
     }),
     localArbitrum: networkConfig({
       url: 'http://localhost:8547',
-      // chainId: ,
-      live: true,
-      companionNetworks: {
-        l1: 'localArbitrumL1',
-      },
+      // chainId: , 
     }),
     localArbitrumL1: networkConfig({
-      url: 'http://localhost:7545',
-      // chainId: ,
-      live: true,
-      companionNetworks: {
-        l2: 'localArbitrum',
-      },
+      url: 'http://localhost:7545' 
+      
     }),
     kovanOptimism: networkConfig({
       url: 'https://kovan.optimism.io',
       // chainId: ,
-      live: true,
-      ovm: true,
-      companionNetworks: {
-        l1: 'kovan',
-      },
+      ovm: true 
     }),
     localOptimism: networkConfig({
       url: 'http://localhost:8545',
       // chainId: ,
-      live: true,
-      ovm: true,
-      companionNetworks: {
-        l1: 'localOptimismL1',
-      },
+      ovm: true, 
     }),
     localOptimismL1: networkConfig({
       url: 'http://localhost:9545',
-      // chainId: ,
-      live: true,
-      companionNetworks: {
-        l2: 'localOptimism',
-      },
+      // chainId: , 
     }),
     localAvalanche: networkConfig({
       url: 'http://localhost:9650/ext/bc/C/rpc',
       chainId: 43112,
-      live: true,
     }),
     fujiAvalanche: networkConfig({
       url: 'https://api.avax-test.network/ext/bc/C/rpc',
       chainId: 43113,
-      live: true,
     }),
     mainnetAvalanche: networkConfig({
       url: 'https://api.avax.network/ext/bc/C/rpc',
       chainId: 43114,
-      live: true,
     }),
     testnetHarmony: networkConfig({
       url: 'https://api.s0.b.hmny.io',
       chainId: 1666700000,
-      live: true,
     }),
     mainnetHarmony: networkConfig({
       url: 'https://api.harmony.one',
       chainId: 1666600000,
-      live: true,
     }),
     hardhat: networkConfig({
       chainId: 31337,
-      live: false,
       allowUnlimitedContractSize: true,
       // forking:
       //   FORKING_NETWORK == null

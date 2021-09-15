@@ -5,7 +5,7 @@ Version 0.10
 import EIP712Helper from "./EIP712Helper" 
 import web3utils from 'web3-utils'
 
-import ethUtil from 'ethereumjs-util'
+import { ethers } from 'ethers'
 import ethSigUtil from 'eth-sig-util'
 import { string } from "hardhat/internal/core/params/argumentTypes";
   
@@ -45,11 +45,11 @@ export default class EIP712Utils {
    /// getBidPacketHash(bidderAddress,nftContractAddress,currencyTokenAddress,currencyTokenAmount,expires)
       static getTypedDataHash(typedData:any)
       {
-        var typedDatahash = ethUtil.keccak256(
+        var typedDatahash = ethers.utils.keccak256(
           Buffer.concat([
               Buffer.from('1901', 'hex'),
-              EIP712Helper.structHash('EIP712Domain', typedData.domain, typedData.types),
-              EIP712Helper.structHash(typedData.primaryType, typedData.message, typedData.types),
+              Buffer.from(EIP712Helper.structHash('EIP712Domain', typedData.domain, typedData.types)),
+              Buffer.from(EIP712Helper.structHash(typedData.primaryType, typedData.message, typedData.types)),
           ]),
       );
 
@@ -73,7 +73,16 @@ export default class EIP712Utils {
 
      static recoverPacketSigner(  typedData:any, signature:any){
 
-      console.log('signature',signature)
+
+      let payloadHash = EIP712Utils.getTypedDataHash( typedData ) 
+      console.log("PayloadHash:", payloadHash);
+
+      let result = ethers.utils.verifyMessage(ethers.utils.arrayify( payloadHash ), signature )
+      console.log("Recovered:", result );
+
+      return result 
+
+     /* console.log('signature',signature)
 
        var sigHash = EIP712Utils.getTypedDataHash( typedData );
       // var msgBuf = ethUtil.toBuffer(signature)
@@ -90,16 +99,31 @@ export default class EIP712Utils {
 
        console.log('recovered signer pub address',recoveredSignatureSigner.toLowerCase())
        //make sure the signer is the depositor of the tokens
-       return recoveredSignatureSigner.toLowerCase();
+       return recoveredSignatureSigner.toLowerCase();*/
 
      }
 
 
 
 
-     static signTypedData(privateKey:any, typedData:any)
+     static async signTypedData(privateKey:any, typedData:any)
     {
 
+      const wallet = new ethers.Wallet(privateKey)
+
+      let payload = typedData //ethers.utils.defaultAbiCoder.encode( typedData );
+      console.log("Payload:", payload);
+
+      let payloadHash = EIP712Utils.getTypedDataHash( typedData ) 
+      console.log("PayloadHash:", payloadHash);
+
+      let signature = await wallet.signMessage(ethers.utils.arrayify(payloadHash));
+      let sig = ethers.utils.splitSignature(signature);
+      console.log("Signature:", sig);
+
+      return sig 
+
+/*
       const msgHash = ethSigUtil.typedSignatureHash(typedData)
        
 
@@ -108,7 +132,7 @@ export default class EIP712Utils {
       const sig = ethUtil.ecsign(msgBuffer, privateKey)
 
       return ethUtil.bufferToHex( ethUtil.toBuffer(ethSigUtil.concatSig(ethUtil.toBuffer(sig.v), sig.r, sig.s)))
-
+*/
     }
 
     //"BidPacket(address bidderAddress,address nftContractAddress,address currencyTokenAddress,uint256 currencyTokenAmount,uint256 expires)"

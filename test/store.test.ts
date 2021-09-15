@@ -7,9 +7,7 @@ import path from 'path'
 
 const { getNamedSigner, contracts, deployments, ethers } = hre
 
-import ethUtil from 'ethereumjs-util'
-
-
+ 
 import EIP712Helper from './helpers/EIP712Helper'
 import EIP712Utils from './helpers/EIP712Utils'
 

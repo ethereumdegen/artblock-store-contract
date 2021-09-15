@@ -3,7 +3,9 @@
 
 //const web3utils = require('web3').utils
 
-import {keccak} from 'ethereumjs-util'
+import { ethers } from 'ethers'
+
+//import {keccak} from 'ethereumjs-util'
 import abi from 'ethereumjs-abi'
 //import web3utils from 'web3utils'
 
@@ -44,7 +46,7 @@ export default class EIP712Helper{
     }
 
     static typeHash(primaryType:string, types:any) {
-        return keccak( Buffer.from(EIP712Helper.encodeType(primaryType, types)));
+        return ethers.utils.keccak256( Buffer.from(EIP712Helper.encodeType(primaryType, types)));
     }
 
     static encodeData(primaryType:string, data:any, types:any) {
@@ -62,14 +64,14 @@ export default class EIP712Helper{
             let value = data[field.name];
             if (field.type == 'string' || field.type == 'bytes') {
                 encTypes.push('bytes32');
-                value = keccak(Buffer.from(value));
+                value = ethers.utils.keccak256(Buffer.from(value));
 
                 //console.log('typehash 2  ', value)
 
                 encValues.push(value);
             } else if (types[field.type] !== undefined) {
                 encTypes.push('bytes32');
-                value = keccak(Buffer.from(EIP712Helper.encodeData(field.type, value, types)));
+                value = ethers.utils.keccak256(Buffer.from(EIP712Helper.encodeData(field.type, value, types)));
                 encValues.push(value);
             } else if (field.type.lastIndexOf(']') === field.type.length - 1) {
                 throw 'TODO: Arrays currently unimplemented in encodeData';
@@ -83,7 +85,7 @@ export default class EIP712Helper{
     }
 
     static structHash(primaryType:string, data:any, types:any) {
-        return keccak(Buffer.from(EIP712Helper.encodeData(primaryType, data, types)));
+        return ethers.utils.keccak256(Buffer.from(EIP712Helper.encodeData(primaryType, data, types)));
     }
 
 
