@@ -37,13 +37,11 @@ export default class EIP712Helper{
         // Format as a string with fields
         let result = '';
         for (let type of deps) {
-            result += `${type}(${types[type].map(({ name, type }:{name:any,type:any}) => `${type} ${name}`).join(',')})`;
+            result += `${type}(${types[type].map(({ name, type }:{ name:any, type:any }) => `${type} ${name}`).join(',')})`;
         }
 
         return result;
     }
- 
-    
 
     static typeHash(primaryType:string, types:any) {
         return keccak( Buffer.from(EIP712Helper.encodeType(primaryType, types)));
@@ -103,7 +101,38 @@ export default class EIP712Helper{
     }
 
 
-    
+    static async signTypedData(web3provider:any, signer:any, data:any )
+    {
+      var result = await new Promise(async resolve => {
+  
+                web3provider.sendAsync(
+                {
+                    method: "eth_signTypedData_v3",
+                    params: [signer, data],
+                    from: signer
+                },
+                function(err:any, result:any) {
+                    if (err) {
+                        return console.error(err);
+                    }  
+                      const signature = result.result.substring(2);
+                    const r = "0x" + signature.substring(0, 64);
+                    const s = "0x" + signature.substring(64, 128);
+                    const v = parseInt(signature.substring(128, 130), 16);    // The signature is now comprised of r, s, and v.
+                    console.log({r: r, s:s, v: v })
+                    console.log('sign returned ',   result)
+                    resolve({ signature: result.result, v:v, r:r, s:s  } )
+                    }
+                );
+  
+       
+  
+  
+        });
+  
+        return result;
+    }
+
 
 
   }

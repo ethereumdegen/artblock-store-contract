@@ -5,17 +5,23 @@ import '@eth-optimism/hardhat-ovm'
 import 'hardhat-contract-sizer'
 import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
+ 
 
 import { config } from 'dotenv'
 import { ethers } from 'ethers'
 import * as fs from 'fs'
-import { HardhatUserConfig } from 'hardhat/config'
+import { extendEnvironment, HardhatUserConfig } from 'hardhat/config'
+
+
+
 import {
+  HardhatRuntimeEnvironment,
   HardhatNetworkHDAccountsUserConfig,
   NetworkUserConfig,
 } from 'hardhat/types'
 import * as path from 'path'
- 
+  
+
 
 const {
   ALCHEMY_KOVAN_KEY,
@@ -45,6 +51,9 @@ if (TESTING === '1') {
   require('./test/helpers/chai-helpers')
 }
 
+
+
+
 const getLatestDeploymentBlock = (networkName: string): number | undefined => {
   try {
     return parseInt(
@@ -63,6 +72,8 @@ const getLatestDeploymentBlock = (networkName: string): number | undefined => {
     // Network deployment does not exist
   }
 }
+
+ 
 
 const mnemonic = (): string => {
   try {
@@ -89,6 +100,8 @@ const networkConfig = (config: NetworkUserConfig): NetworkUserConfig => {
 
   return config
 }
+
+
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export default <HardhatUserConfig>{
@@ -313,3 +326,5 @@ export default <HardhatUserConfig>{
     timeout: 10000000,
   },
 }
+ 
+

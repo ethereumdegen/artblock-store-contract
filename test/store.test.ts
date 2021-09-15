@@ -1,10 +1,18 @@
 import { Contract, Signer } from 'ethers'
 import * as hre from 'hardhat'
  
+import fs from 'fs'
+import path from 'path'
+ 
+
 const { getNamedSigner, contracts, deployments, ethers } = hre
 
+import ethUtil from 'ethereumjs-util'
 
-import OrderPacketUtils from './helpers/orderpacket-utils'
+
+import EIP712Helper from './helpers/EIP712Helper'
+import EIP712Utils from './helpers/EIP712Utils'
+
 
 const { use, should, expect } = require('chai')
 const { solidity } = require('ethereum-waffle')
@@ -12,6 +20,10 @@ const { solidity } = require('ethereum-waffle')
 use(solidity)
 should()
  
+
+let customConfigJSON = fs.readFileSync(path.join('test/helpers/eip712-config.json'));
+let customConfig = JSON.parse(customConfigJSON.toString())
+
 
 
 describe('Store', function () {
@@ -33,7 +45,11 @@ describe('Store', function () {
     user = await getNamedSigner('borrower')
     counterparty = await getNamedSigner('lender')
 
+    
+
     storeContract = await contracts.get('BlockStore')
+
+    
 
     const ERC721ContractFactory = await ethers.getContractFactory('MintableERC721')
     erc721Contract = await ERC721ContractFactory.deploy()
@@ -53,10 +69,72 @@ describe('Store', function () {
     
 
   describe('Orders', () => {
+
+    it('Should be able to sign an offchain Sell Order', async() => {
+
+      let counterpartyAddress = await counterparty.getAddress()
+
+      let dataValues = {
+          orderCreator:counterpartyAddress,
+          isSellOrder:true,
+          nftContractAddress:"0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+          nftTokenId:0,
+          currencyTokenAddress:"0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+          currencyTokenAmount:100,
+          expires:0 
+      }
+      
+      let chainId = await hre.getChainId()
+
+ 
+      console.log('chainId', chainId)
+
+      const typedData = EIP712Utils.getTypedDataFromParams( 
+        parseInt(chainId),  
+        storeContract.address,
+        customConfig,
+        dataValues  
+      )
+  
+      console.log('typedData', (typedData))
+      let typedDatahash = EIP712Utils.getTypedDataHash(typedData) 
+  
+     // var privateKey = testAccount.secretKey;
+     // var privKey = Buffer.from(privateKey.substring(2), 'hex')
+   
+      //const sig = ethUtil.ecsign( typedDatahash   , privKey );
+
+      let sig2 = await counterparty.signMessage( typedDatahash )
+ 
+     // var signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
+    
+      let recoveredSigner = EIP712Utils.recoverPacketSigner(typedData, sig2)
+      console.log('recoveredSigner', recoveredSigner )
+        
+  
+      expect(recoveredSigner.toLowerCase()).to.eql(counterpartyAddress.toLowerCase())
+  
+
+    })
+
     it('Should be able to fulfill an offchain Sell Order', async () => {
-     
-     // let signature = OrderPacketUtils.signTypedData( )
-     
+
+        let provider = hre.network.provider
+
+      //  let signature = OrderPacketUtils.signTypedData(provider,user,typedData )
+      /*  let signature = 'test'
+
+        let NATIVE_ETH = '0x0000000000000000000000000000000000000010'
+
+        let orderPacket = OrderPacketUtils.getOrderPacket(await counterparty.getAddress(),true,erc721Contract.getAddress,0,NATIVE_ETH,100,0)
+        let typedData
+
+        let resultAddress = OrderPacketUtils.recoverOrderPacketSigner(typedData,signature);
+       */
+
+
+
+
       /*const bundle = await createBundle({ 721: [0] })
       await optionsContract.connect(user).createOption(bundle, 100, ONE_MONTH)
 
@@ -91,3 +169,5 @@ describe('Store', function () {
 
    
 })
+ 
+
