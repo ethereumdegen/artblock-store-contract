@@ -318,7 +318,7 @@ contract ECRecovery {
 contract BlockStore is Owned, ECRecovery  {
  
     
-  mapping (bytes32 => uint) public burnedSignatures; 
+  mapping (address => mapping(bytes32 => uint)) public burnedNonces; 
     
   //uint256 public _fee_pct;
 
@@ -326,6 +326,9 @@ contract BlockStore is Owned, ECRecovery  {
   mapping(address => bool) public _allowedNFTContractAddress;
 
   address constant internal NATIVE_ETH = 0x0000000000000000000000000000000000000010;
+
+  //starts at 0 
+  mapping (address => uint256) userSellOrderNonce; 
                                          
  
   constructor(  ) public { 
@@ -337,6 +340,9 @@ contract BlockStore is Owned, ECRecovery  {
 
     _fee_pct[projectContract] = fee_pct; 
   }
+
+
+
   function setProjectAllowed( address projectContract, bool allow ) public onlyOwner { 
     
     _allowedNFTContractAddress[projectContract] = allow; 
@@ -364,7 +370,7 @@ contract BlockStore is Owned, ECRecovery  {
    
   event nftSale(address sellerAddress, address buyerAddress, address nftContractAddress, uint256 nftTokenId, address currencyTokenAddress, uint256 currencyTokenAmount);
   
-  event SignatureBurned(address indexed signer, bytes32 hash);
+  event nonceBurned(address indexed signer, bytes32 hash);
 
   struct OffchainOrder {
    
@@ -377,6 +383,7 @@ contract BlockStore is Owned, ECRecovery  {
     address currencyTokenAddress; //if 0x10 that means eth 
     uint256 currencyTokenAmount;
     
+    bytes32 nonce;//only used for sell orders and is random, used by front end to group offchain orders together 
     uint256 expires; 
   }
  
@@ -402,7 +409,7 @@ contract BlockStore is Owned, ECRecovery  {
  
 
   bytes32 constant ORDER_TYPEHASH = keccak256(  
-    "OffchainOrder(address orderCreator,bool isSellOrder,address nftContractAddress,uint256 nftTokenId,address currencyTokenAddress,uint256 currencyTokenAmount,uint256 expires)"
+    "OffchainOrder(address orderCreator,bool isSellOrder,address nftContractAddress,uint256 nftTokenId,address currencyTokenAddress,uint256 currencyTokenAmount,bytes32 nonce,uint256 expires)"
   );
 
   
@@ -414,7 +421,7 @@ contract BlockStore is Owned, ECRecovery  {
 
 
   
-  function getOrderHash(address orderCreator,bool isSellOrder,address nftContractAddress,uint256 nftTokenId,address currencyTokenAddress, uint256 currencyTokenAmount,uint256 expires) public pure returns (bytes32) {
+  function getOrderHash(address orderCreator,bool isSellOrder,address nftContractAddress,uint256 nftTokenId,address currencyTokenAddress, uint256 currencyTokenAmount,bytes32 nonce,uint256 expires) public pure returns (bytes32) {
           return keccak256(abi.encode(
               ORDER_TYPEHASH,
               orderCreator,
@@ -423,30 +430,31 @@ contract BlockStore is Owned, ECRecovery  {
               nftTokenId,
               currencyTokenAddress,
               currencyTokenAmount,
+              nonce,
               expires
           ));
       }
 
  
 
-  function getOrderTypedDataHash(address orderCreator,bool isSellOrder,address nftContractAddress,uint256 nftTokenId,address currencyTokenAddress, uint256 currencyTokenAmount,uint256 expires) public view returns (bytes32) {
+  function getOrderTypedDataHash(address orderCreator,bool isSellOrder,address nftContractAddress,uint256 nftTokenId,address currencyTokenAddress, uint256 currencyTokenAmount,bytes32 nonce,uint256 expires) public view returns (bytes32) {
  
               bytes32 digest = keccak256(abi.encodePacked(
                   "\x19\x01",
                   getEIP712DomainHash('BlockStore','1',getChainID(),address(this)),
-                  getOrderHash(orderCreator,isSellOrder,nftContractAddress,nftTokenId,currencyTokenAddress,currencyTokenAmount,expires)
+                  getOrderHash(orderCreator,isSellOrder,nftContractAddress,nftTokenId,currencyTokenAddress,currencyTokenAmount,nonce,expires)
               ));
               return digest;
           }
   
 
   //require pre-approval from the buyer in the form of a personal sign of an offchain buy order 
-  function sellNFTUsingBuyOrder(address buyer, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, uint256 expires, bytes memory buyerSignature) public returns (bool){
+  function sellNFTUsingBuyOrder(address buyer, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, bytes32 nonce, uint256 expires, bytes memory buyerSignature) public returns (bool){
 
       require(_allowedNFTContractAddress[nftContractAddress],'Project not allowed');
 
       //require personalsign from buyer to be submitted by seller  
-      bytes32 sigHash = getOrderTypedDataHash(buyer,false,nftContractAddress,nftTokenId,currencyToken,currencyAmount,expires);
+      bytes32 sigHash = getOrderTypedDataHash(buyer,false,nftContractAddress,nftTokenId,currencyToken,currencyAmount,nonce,expires);
 
       address recoveredSignatureSigner = recover(sigHash,buyerSignature);
 
@@ -456,9 +464,9 @@ contract BlockStore is Owned, ECRecovery  {
        
       
       require(block.number < expires || expires == 0, 'bid expired');
-     
-      require(burnedSignatures[sigHash] == 0, 'signature already used');
-      burnedSignatures[sigHash] = 0x1;
+
+      require(burnedNonces[buyer][nonce] == 0, 'nonce already burned');
+      burnedNonces[buyer][nonce] = 0x1;
        
       
       ERC721(nftContractAddress).safeTransferFrom(msg.sender, buyer, nftTokenId);
@@ -467,19 +475,19 @@ contract BlockStore is Owned, ECRecovery  {
       
       
       emit nftSale(msg.sender, buyer,  nftContractAddress, nftTokenId, currencyToken, currencyAmount);
-      emit SignatureBurned(buyer, sigHash);
+      emit nonceBurned(buyer, sigHash);
 
       return true;
   }
 
 
-  function buyNFTUsingSellOrder(address seller, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, uint256 expires, bytes memory buyerSignature) payable public returns (bool){
+  function buyNFTUsingSellOrder(address seller, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, bytes32 nonce, uint256 expires, bytes memory buyerSignature) payable public returns (bool){
 
       require(_allowedNFTContractAddress[nftContractAddress],'Project not allowed');
 
 
       //require personalsign from seller to be submitted by buyer  
-      bytes32 sigHash = getOrderTypedDataHash(seller,true,nftContractAddress,nftTokenId,currencyToken,currencyAmount,expires);
+      bytes32 sigHash = getOrderTypedDataHash(seller,true,nftContractAddress,nftTokenId,currencyToken,currencyAmount,nonce,expires);
 
       address recoveredSignatureSigner = recover(sigHash,buyerSignature);
 
@@ -490,8 +498,8 @@ contract BlockStore is Owned, ECRecovery  {
       
       require(block.number < expires || expires == 0, 'bid expired');
      
-      require(burnedSignatures[sigHash] == 0, 'signature already used');
-      burnedSignatures[sigHash] = 0x1;
+      require(burnedNonces[seller][nonce] == 0, 'nonce already burned');
+      burnedNonces[seller][nonce] = 0x1;
        
       
       ERC721(nftContractAddress).safeTransferFrom(seller, msg.sender, nftTokenId);
@@ -500,7 +508,7 @@ contract BlockStore is Owned, ECRecovery  {
       
       
       emit nftSale(  seller,  msg.sender, nftContractAddress, nftTokenId, currencyToken, currencyAmount);
-      emit SignatureBurned(seller, sigHash);
+      emit nonceBurned(seller, sigHash);
 
       return true;
   }
@@ -519,19 +527,21 @@ contract BlockStore is Owned, ECRecovery  {
     }
     
     return true;
-  }
+  } 
   
    
-  function cancelOffchainOrder(address orderCreator, bool isSellOrder, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, uint256 expires, bytes memory offchainSignature ) public returns (bool){
-      bytes32 sigHash = getOrderTypedDataHash(orderCreator,isSellOrder,nftContractAddress,nftTokenId,currencyToken,currencyAmount,expires);
+  function cancelOffchainOrder(address orderCreator, bool isSellOrder, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, bytes32 nonce, uint256 expires, bytes memory offchainSignature ) public returns (bool){
+      bytes32 sigHash = getOrderTypedDataHash(orderCreator,isSellOrder,nftContractAddress,nftTokenId,currencyToken,currencyAmount,nonce,expires);
       address recoveredSignatureSigner = recover(sigHash,offchainSignature);
       
       require(orderCreator == recoveredSignatureSigner, 'Invalid signature');
       require(msg.sender == recoveredSignatureSigner, 'Not signature owner');
-      require(burnedSignatures[sigHash]==0, 'Already burned');
-      
-      burnedSignatures[sigHash] = 0x2;
-      emit SignatureBurned(orderCreator, sigHash);
+
+
+      require(burnedNonces[orderCreator][nonce] == 0, 'Nonce already burned');
+      burnedNonces[orderCreator][nonce] = 0x2;
+        
+      emit nonceBurned(orderCreator, sigHash);
       
       return true;
   }
