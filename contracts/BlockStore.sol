@@ -323,6 +323,7 @@ contract BlockStore is Owned, ECRecovery  {
   //uint256 public _fee_pct;
 
   mapping(address => uint256) public _fee_pct;
+  mapping(address => bool) public _allowedNFTContractAddress;
 
   address constant internal NATIVE_ETH = 0x0000000000000000000000000000000000000010;
                                          
@@ -335,6 +336,10 @@ contract BlockStore is Owned, ECRecovery  {
     require(fee_pct >= 0 && fee_pct <10000);
 
     _fee_pct[projectContract] = fee_pct; 
+  }
+  function setProjectAllowed( address projectContract, bool allow ) public onlyOwner { 
+    
+    _allowedNFTContractAddress[projectContract] = allow; 
   }
 
 
@@ -396,8 +401,8 @@ contract BlockStore is Owned, ECRecovery  {
     }
  
 
-  bytes32 constant ORDER_TYPEHASH = keccak256(
-      "OffchainOrder(address orderCreator,bool isSellOrder,address nftContractAddress,uint256 nftTokenId,address currencyTokenAddress,uint256 currencyTokenAmount,uint256 expires)"
+  bytes32 constant ORDER_TYPEHASH = keccak256(  
+    "OffchainOrder(address orderCreator,bool isSellOrder,address nftContractAddress,uint256 nftTokenId,address currencyTokenAddress,uint256 currencyTokenAmount,uint256 expires)"
   );
 
   
@@ -437,7 +442,8 @@ contract BlockStore is Owned, ECRecovery  {
 
   //require pre-approval from the buyer in the form of a personal sign of an offchain buy order 
   function sellNFTUsingBuyOrder(address buyer, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, uint256 expires, bytes memory buyerSignature) public returns (bool){
- 
+
+      require(_allowedNFTContractAddress[nftContractAddress],'Project not allowed');
 
       //require personalsign from buyer to be submitted by seller  
       bytes32 sigHash = getOrderTypedDataHash(buyer,false,nftContractAddress,nftTokenId,currencyToken,currencyAmount,expires);
@@ -468,6 +474,8 @@ contract BlockStore is Owned, ECRecovery  {
 
 
   function buyNFTUsingSellOrder(address seller, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, uint256 expires, bytes memory buyerSignature) payable public returns (bool){
+
+      require(_allowedNFTContractAddress[nftContractAddress],'Project not allowed');
 
 
       //require personalsign from seller to be submitted by buyer  
@@ -506,8 +514,8 @@ contract BlockStore is Owned, ECRecovery  {
       payable(owner).transfer( feeAmount );
     }else{
       require(msg.value == 0,'incorrect payment value'); 
-      require( IERC20(currencyToken).transferFrom(to, from, currencyAmount - (feeAmount) ), 'unable to pay' );
-      require( IERC20(currencyToken).transferFrom(to, owner, feeAmount ), 'unable to pay'  ); 
+      require( IERC20(currencyToken).transferFrom(from, to, currencyAmount - (feeAmount) ), 'unable to pay' );
+      require( IERC20(currencyToken).transferFrom(from, owner, feeAmount ), 'unable to pay'  ); 
     }
     
     return true;

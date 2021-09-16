@@ -72,6 +72,8 @@ describe('Store', function () {
 
       let counterpartyAddress = await counterparty.getAddress()
 
+      console.log('counterpartyAddress',counterpartyAddress)
+
       let dataValues = {
           orderCreator:counterpartyAddress,
           isSellOrder:true,
@@ -103,7 +105,7 @@ describe('Store', function () {
       //const sig = ethUtil.ecsign( typedDatahash   , privKey );
 
       let sig2 = await counterparty.signMessage( typedDatahash )
- 
+      
      // var signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
     
       let recoveredSigner = EIP712Utils.recoverPacketSigner(typedData, sig2)
