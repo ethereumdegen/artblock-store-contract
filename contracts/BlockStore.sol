@@ -320,14 +320,13 @@ contract BlockStore is Owned, ECRecovery  {
     
   mapping (address => mapping(bytes32 => uint)) public burnedNonces; 
     
-  //uint256 public _fee_pct;
+  
 
   mapping(address => uint256) public _fee_pct;
   mapping(address => bool) public _allowedNFTContractAddress;
 
   address constant internal NATIVE_ETH = 0x0000000000000000000000000000000000000010;
-
-  //starts at 0 
+ 
   mapping (address => uint256) userSellOrderNonce; 
                                          
  
@@ -456,7 +455,7 @@ contract BlockStore is Owned, ECRecovery  {
       //require personalsign from buyer to be submitted by seller  
       bytes32 sigHash = getOrderTypedDataHash(buyer,false,nftContractAddress,nftTokenId,currencyToken,currencyAmount,nonce,expires);
  
-      //make sure the signer is the depositor of the tokens
+       
       require(buyer ==  recover(sigHash,buyerSignature) , 'Invalid signature');
          
       
@@ -478,7 +477,7 @@ contract BlockStore is Owned, ECRecovery  {
   }
 
 
-  function buyNFTUsingSellOrder(address seller, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, bytes32 nonce, uint256 expires, bytes memory buyerSignature) payable public returns (bool){
+  function buyNFTUsingSellOrder(address seller, address nftContractAddress, uint256 nftTokenId, address currencyToken, uint256 currencyAmount, bytes32 nonce, uint256 expires, bytes memory sellerSignature) payable public returns (bool){
 
       require(_allowedNFTContractAddress[nftContractAddress],'Project not allowed');
 
@@ -487,8 +486,8 @@ contract BlockStore is Owned, ECRecovery  {
       bytes32 sigHash = getOrderTypedDataHash(seller,true,nftContractAddress,nftTokenId,currencyToken,currencyAmount,nonce,expires);
 
       
-      //make sure the signer is the depositor of the tokens
-      require(seller == recover(sigHash,buyerSignature), 'Invalid signature');
+       
+      require(seller == recover(sigHash,sellerSignature), 'Invalid signature');
        
       
       require(block.number < expires || expires == 0, 'bid expired');
