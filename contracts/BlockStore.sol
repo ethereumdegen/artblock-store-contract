@@ -370,7 +370,7 @@ contract BlockStore is Owned, ECRecovery  {
    
   event nftSale(address sellerAddress, address buyerAddress, address nftContractAddress, uint256 nftTokenId, address currencyTokenAddress, uint256 currencyTokenAmount);
   
-  event nonceBurned(address indexed signer, bytes32 hash);
+  event nonceBurned(address indexed signer, bytes32 nonce);
 
   struct OffchainOrder {
    
@@ -472,7 +472,7 @@ contract BlockStore is Owned, ECRecovery  {
       
       
       emit nftSale(msg.sender, buyer,  nftContractAddress, nftTokenId, currencyToken, currencyAmount);
-      emit nonceBurned(buyer, sigHash);
+      emit nonceBurned(buyer, nonce);
 
       return true;
   }
@@ -503,7 +503,7 @@ contract BlockStore is Owned, ECRecovery  {
       
       
       emit nftSale(  seller,  msg.sender, nftContractAddress, nftTokenId, currencyToken, currencyAmount);
-      emit nonceBurned(seller, sigHash);
+      emit nonceBurned(seller, nonce);
 
       return true;
   }
@@ -536,7 +536,7 @@ contract BlockStore is Owned, ECRecovery  {
       require(burnedNonces[orderCreator][nonce] == 0, 'Nonce already burned');
       burnedNonces[orderCreator][nonce] = 0x2;
         
-      emit nonceBurned(orderCreator, sigHash);
+      emit nonceBurned(orderCreator, nonce);
       
       return true;
   }
