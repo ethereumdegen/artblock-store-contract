@@ -336,7 +336,7 @@ contract BlockStore is Owned, ECRecovery  {
   }
 
   function setFee( address projectContract, uint fee_pct ) public onlyOwner { 
-    require(fee_pct >= 0 && fee_pct <10000);
+    require(fee_pct >= 0 && fee_pct <=1000);
 
     _fee_pct[projectContract] = fee_pct; 
   }
@@ -455,13 +455,10 @@ contract BlockStore is Owned, ECRecovery  {
 
       //require personalsign from buyer to be submitted by seller  
       bytes32 sigHash = getOrderTypedDataHash(buyer,false,nftContractAddress,nftTokenId,currencyToken,currencyAmount,nonce,expires);
-
-      address recoveredSignatureSigner = recover(sigHash,buyerSignature);
-
-
+ 
       //make sure the signer is the depositor of the tokens
-      require(buyer == recoveredSignatureSigner, 'Invalid signature');
-       
+      require(buyer ==  recover(sigHash,buyerSignature) , 'Invalid signature');
+         
       
       require(block.number < expires || expires == 0, 'bid expired');
 
@@ -489,11 +486,9 @@ contract BlockStore is Owned, ECRecovery  {
       //require personalsign from seller to be submitted by buyer  
       bytes32 sigHash = getOrderTypedDataHash(seller,true,nftContractAddress,nftTokenId,currencyToken,currencyAmount,nonce,expires);
 
-      address recoveredSignatureSigner = recover(sigHash,buyerSignature);
-
-
+      
       //make sure the signer is the depositor of the tokens
-      require(seller == recoveredSignatureSigner, 'Invalid signature');
+      require(seller == recover(sigHash,buyerSignature), 'Invalid signature');
        
       
       require(block.number < expires || expires == 0, 'bid expired');
